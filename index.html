@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Goal Gully - Free Online Football Game</title>
+<meta name="description" content="Goal Gully is a free street-style 5-a-side football game. Play with real clubs and nations, and win the World Cup.">
+<meta property="og:title" content="Goal Gully - Free Online Football Game">
+<meta property="og:description" content="Play 5-a-side football with real clubs and nations. Made by Vippi.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@500;700&display=swap">
+<style>
+:root{--bg:#120b2e;--ink:#fff4e6;--mute:#b8a9d9;--acc:#ff9f1c;--hot:#ff2e93;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#fff1e0;--ink:#2a1650;--mute:#6b5a8e}}
+:root[data-theme="dark"]{--bg:#120b2e;--ink:#fff4e6;--mute:#b8a9d9}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;background:radial-gradient(ellipse at 50% 0%,#3a1a7a 0%,var(--bg) 62%);color:var(--ink);font-family:'Barlow Condensed',Arial Narrow,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
+#app{position:relative;height:100%;display:flex;flex-direction:column}
+#hud{display:flex;justify-content:center;align-items:center;gap:14px;padding:6px;font-size:26px;font-weight:700}
+#hud b{font-family:'Archivo Black',Impact,sans-serif;font-size:28px;color:var(--acc);min-width:90px;text-align:center}
+#hud span{flex:1;max-width:200px}#tA{text-align:right}
+#info{text-align:center;font-size:17px;color:var(--mute);margin-top:-4px}
+#wrap{flex:1;min-height:0;display:flex;justify-content:center;align-items:center}
+canvas{max-width:100%;max-height:100%;aspect-ratio:1000/620;border-radius:12px;box-shadow:0 0 0 3px #ff2e93,0 0 44px rgba(255,46,147,.4)}
+.ov{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 15%,rgba(80,30,150,.97),rgba(14,8,40,.99));display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:12px;text-align:center;padding:16px;color:#f3f1e8;overflow:auto;z-index:5}
+.ov h1{font-family:'Archivo Black',Impact,sans-serif;font-size:clamp(32px,7vw,64px);margin:0;line-height:1.05;letter-spacing:1px;background:linear-gradient(90deg,#ff9f1c,#ff2e93);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ov p{margin:0;color:#d6c9f2;font-size:19px;max-width:520px}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:760px}
+button{font:700 20px 'Barlow Condensed',sans-serif;border:2px solid var(--acc);background:transparent;color:var(--acc);padding:8px 16px;border-radius:10px;cursor:pointer}
+button.on,button.go{background:linear-gradient(90deg,#ff9f1c,#ff2e93);color:#fff;border-color:transparent;box-shadow:0 0 18px rgba(255,46,147,.45)}
+button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.tm{display:flex;align-items:center;gap:8px;border-color:#7a58c9;color:#fff4e6;background:rgba(255,255,255,.06);font-size:18px}
+.tm i{width:16px;height:16px;border-radius:50%;border:2px solid;display:inline-block}
+.tm small{color:#c4b5ea;font-size:15px}
+.credit{font-family:'Archivo Black',Impact,sans-serif;color:var(--acc);font-size:20px}
+#ctl{position:absolute;inset:auto 0 0 0;height:50%;pointer-events:none;z-index:2}
+#joy{position:absolute;left:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));width:140px;height:140px;border-radius:50%;border:3px solid rgba(255,255,255,.45);background:rgba(0,0,0,.25);pointer-events:auto;touch-action:none}
+#nub{position:absolute;left:45px;top:45px;width:50px;height:50px;border-radius:50%;background:rgba(255,159,28,.92);box-shadow:0 0 14px rgba(255,46,147,.6)}
+.b{position:absolute;pointer-events:auto;width:72px;height:72px;border-radius:50%;padding:0;background:rgba(0,0,0,.4);color:#fff;border-color:rgba(255,255,255,.7);font-size:16px}
+#bs{right:14px;bottom:calc(60px + env(safe-area-inset-bottom,0px))}#bp{right:96px;bottom:calc(14px + env(safe-area-inset-bottom,0px))}#br{right:96px;bottom:calc(100px + env(safe-area-inset-bottom,0px))}
+</style></head><body><div id="app">
+<div id="hud"><span id="tA">-</span><b id="sc">0 - 0</b><span id="tB">-</span></div>
+<div id="info"><span id="rd"></span> <span id="clock">0'</span></div>
+<div id="wrap"><canvas id="c" width="1000" height="620"></canvas></div>
+<div id="ctl"><div id="joy" aria-label="Joystick"><div id="nub"></div></div>
+<button class="b" id="bp">PASS</button><button class="b" id="bs">SHOOT</button><button class="b" id="br">RUN</button></div>
+<div class="ov" id="menu"></div>
+</div>
+<script>
+// ===== DATABASE (edit freely): League|Club|jersey|trim|strength|GK,DEF,MID,WING,STRIKER =====
+const CLUBS=`Premier League|Man City|#6cabdd|#ffffff|90|Ederson,Rodri,De Bruyne,Foden,Haaland
+Premier League|Liverpool|#c8102e|#ffffff|88|Alisson,Van Dijk,Mac Allister,Salah,Gakpo
+Premier League|Arsenal|#ef0107|#ffffff|88|Raya,Saliba,Rice,Saka,Havertz
+Premier League|Chelsea|#034694|#ffffff|82|Sánchez,Colwill,Enzo Fernández,Palmer,Jackson
+Premier League|Man United|#da291c|#fbe122|81|Onana,Casemiro,Bruno Fernandes,Rashford,Højlund
+Premier League|Tottenham|#ffffff|#132257|82|Vicario,Romero,Maddison,Son Heung-min,Richarlison
+La Liga|Real Madrid|#f4f4f4|#1b2a6b|91|Courtois,Valverde,Bellingham,Vinícius Jr.,Mbappé
+La Liga|Barcelona|#a50044|#004d98|89|ter Stegen,Pedri,Raphinha,Lamine Yamal,Lewandowski
+La Liga|Atlético Madrid|#cb3524|#272e61|85|Oblak,Koke,De Paul,Griezmann,Julián Álvarez
+La Liga|Athletic Club|#ee2523|#ffffff|78|Unai Simón,Vivian,Sancet,Nico Williams,Iñaki Williams
+La Liga|Sevilla|#ffffff|#d4001f|75|Nyland,Sergio Ramos,Saúl,Lukébakio,En-Nesyri
+Serie A|Inter Milan|#0068a8|#111111|86|Sommer,Barella,Çalhanoğlu,Thuram,Lautaro Martínez
+Serie A|AC Milan|#fb090b|#111111|82|Maignan,Theo Hernández,Reijnders,Pulisic,Rafael Leão
+Serie A|Juventus|#eeeeee|#111111|82|Di Gregorio,Locatelli,Koopmeiners,Yildiz,Vlahović
+Serie A|Napoli|#12a0d7|#ffffff|82|Meret,Lobotka,McTominay,Kvaratskhelia,Lukaku
+Serie A|Roma|#8e1f2f|#f0bc42|77|Svilar,Cristante,Pellegrini,Dybala,Dovbyk
+Bundesliga|Bayern Munich|#dc052d|#ffffff|89|Neuer,Kimmich,Musiala,Sané,Harry Kane
+Bundesliga|Dortmund|#fde100|#111111|82|Kobel,Emre Can,Brandt,Adeyemi,Guirassy
+Bundesliga|Leverkusen|#e32221|#111111|84|Hrádecký,Xhaka,Wirtz,Grimaldo,Schick
+Bundesliga|RB Leipzig|#ffffff|#dd0741|81|Gulácsi,Orbán,Xavi Simons,Openda,Šeško
+Ligue 1|PSG|#004170|#da291c|87|Donnarumma,Marquinhos,Vitinha,Dembélé,Barcola
+Ligue 1|Marseille|#2faee0|#ffffff|77|Rulli,Rongier,Harit,Greenwood,Aubameyang
+Ligue 1|Monaco|#e30613|#ffffff|77|Köhn,Zakaria,Golovin,Ben Seghir,Embolo
+Ligue 1|Lyon|#ffffff|#1b3b8b|75|Lucas Perri,Tolisso,Cherki,Nuamah,Lacazette
+Other|Al Nassr|#f7d417|#1b2a6b|78|Bento,Laporte,Brozović,Sadio Mané,Cristiano Ronaldo
+Other|Inter Miami|#f7b5cd|#111111|76|Callender,Busquets,Jordi Alba,Luis Suárez,Lionel Messi
+Other|Ajax|#ffffff|#d2122e|76|Rulli,Henderson,Taylor,Godts,Brobbey
+Other|Benfica|#e30613|#ffffff|78|Trubin,Otamendi,Kökçü,Di María,Pavlidis`;
+const NATIONS=`World|Argentina|#75aadb|#ffffff|90|Emiliano Martínez,De Paul,Mac Allister,Lionel Messi,Julián Álvarez
+World|France|#1b3b8b|#ffffff|91|Maignan,Tchouaméni,Griezmann,Dembélé,Kylian Mbappé
+World|Brazil|#ffdf00|#009739|89|Alisson,Casemiro,Paquetá,Vinícius Jr.,Rodrygo
+World|England|#ffffff|#1b2a6b|90|Pickford,Declan Rice,Bellingham,Saka,Harry Kane
+World|Spain|#c60b1e|#ffc400|90|Unai Simón,Rodri,Pedri,Lamine Yamal,Nico Williams
+World|Portugal|#c8102e|#046a38|87|Diogo Costa,Bruno Fernandes,Vitinha,Rafael Leão,Cristiano Ronaldo
+World|Germany|#ffffff|#111111|87|Baumann,Kimmich,Musiala,Wirtz,Havertz
+World|Netherlands|#ff6600|#ffffff|85|Verbruggen,Van Dijk,De Jong,Gakpo,Depay
+World|Belgium|#c8102e|#111111|82|Courtois,Tielemans,De Bruyne,Doku,Lukaku
+World|Italy|#1767b5|#ffffff|83|Donnarumma,Barella,Jorginho,Chiesa,Retegui
+World|Croatia|#ffffff|#d52b1e|82|Livaković,Gvardiol,Modrić,Kovačić,Kramarić
+World|Uruguay|#55a0e0|#ffffff|82|Rochet,Valverde,Bentancur,Darwin Núñez,Luis Suárez
+World|Morocco|#c1272d|#006233|80|Bounou,Hakimi,Amrabat,Ziyech,En-Nesyri
+World|Japan|#1c3f94|#ffffff|78|Suzuki,Endo,Kubo,Mitoma,Minamino
+World|South Korea|#cd2e3a|#ffffff|78|Kim Seung-gyu,Kim Min-jae,Lee Kang-in,Hwang Hee-chan,Son Heung-min
+World|USA|#1b2a6b|#ffffff|77|Turner,Adams,Pulisic,Weah,Balogun
+World|Senegal|#00853f|#fdef42|77|Édouard Mendy,Idrissa Gueye,Pape Sarr,Sadio Mané,Nicolas Jackson
+World|Egypt|#ce1126|#ffffff|76|El Shenawy,Elneny,Marmoush,Trézéguet,Mohamed Salah
+World|Norway|#ba0c2f|#00205b|78|Nyland,Ødegaard,Berge,Nusa,Erling Haaland
+World|India|#ff9933|#138808|55|Gurpreet Sandhu,Sandesh Jhingan,Anirudh Thapa,Chhangte,Sunil Chhetri`;
+const parse=s=>s.split('\n').map(l=>{const a=l.split('|');return{lg:a[0],name:a[1],col:a[2],alt:a[3],str:+a[4],pl:a[5].split(',')}});
+const CL=parse(CLUBS),NT=parse(NATIONS),LEAGUES=[...new Set(CL.map(t=>t.lg))];
+const HOME=[[.04,.5],[.24,.5],[.4,.3],[.5,.72],[.62,.5]];
+const OFF=[[-40,-65,-30],[-12,-25,-8],[-10,-8,0],[4,-4,-4],[3,6,-12]];
+const SKIN=['#f2c9a0','#e0a878','#c68642','#8d5524','#5c3a1e'],HAIR=['#111','#3b2314','#8a5a2b','#d8b04a','#b33'];
+const hs=s=>[...s].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7);
+const rgb=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));
+const close=(a,b)=>{const x=rgb(a),y=rgb(b);return Math.hypot(x[0]-y[0],x[1]-y[1],x[2]-y[2])<110};
+const C=document.getElementById('c'),X=C.getContext('2d'),W=1000,H=620,G1=250,G2=370;
+let me,op,P,ball,score,time,state='menu',pause=0,ctrl=null,hold=0,mode='club',round=0,wcOpps=[],tick=0;
+const key={},T={x:0,y:0,sh:0,ps:0,run:0};
+const $=id=>document.getElementById(id);
+function mk(t,side,alt){return t.pl.map((n,i)=>{const h=hs(n),o=OFF[i],j=h%7-3,c=v=>Math.max(25,Math.min(99,Math.round(t.str+v+j)));
+return{n,side,i,pac:c(o[0]),sho:c(o[1]),pas:c(o[2]),col:i===0?(side?'#ff8a3d':'#39d98a'):(alt?t.alt:t.col),alt:i===0?'#222':(alt?t.col:t.alt),
+skin:SKIN[h%5],hair:HAIR[(h>>3)%5],style:(h>>6)%3,num:[1,4,8,11,9][i],x:0,y:0,vx:0,vy:0,fx:side?-1:1,fy:0,cd:0,st:100}})}
+function place(){P.forEach(p=>{const h=HOME[p.i];p.x=p.side?W-h[0]*W:h[0]*W;p.y=h[1]*H;p.vx=p.vy=0});ball={x:W/2,y:H/2,vx:0,vy:0,o:null}}
+function start(a,b,label){me=a;op=b;P=[...mk(a,0,0),...mk(b,1,close(a.col,b.col))];score=[0,0];time=0;place();pause=90;state='play';
+$('menu').style.display='none';$('tA').textContent=a.name;$('tB').textContent=b.name;$('rd').textContent=label||'Friendly';upd()}
+function upd(){$('sc').textContent=score[0]+' - '+score[1]}
+const pick=(arr,not)=>{const f=arr.filter(t=>!not.includes(t));return f[Math.floor(Math.random()*f.length)]};
+// ===== MENUS =====
+function show(h){const m=$('menu');m.innerHTML=h+'<div class="credit">Made by Vippi</div>';m.style.display='flex'}
+function teamBtn(t,i,fn){return `<button class="tm" data-i="${i}" data-f="${fn}"><i style="background:${t.col};border-color:${t.alt}"></i>${t.name} <small>${t.str}</small></button>`}
+function home(){state='menu';show(`<svg width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="Goal Gully logo"><defs><linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#ff9f1c"/><stop offset="1" stop-color="#ff2e93"/></linearGradient></defs><path d="M60 6 108 24v38c0 28-20 46-48 54C32 108 12 90 12 62V24Z" fill="#1b1042" stroke="url(#lg)" stroke-width="5"/><circle cx="60" cy="50" r="24" fill="#fff"/><path d="M60 36l11 8-4 13H53l-4-13Z" fill="#111"/><path d="M60 26v10M71 44l12-4M67 57l8 10M53 57l-8 10M49 44l-12-4" stroke="#111" stroke-width="3"/><text x="60" y="100" text-anchor="middle" font-family="Archivo Black,Impact,sans-serif" font-size="22" fill="url(#lg)">GG</text></svg><h1>Goal Gully</h1><p>Street-style 5-a-side football under the floodlights. Real clubs, real nations, one trophy. Joystick or WASD to move.</p>
+<div class="row"><button class="go" data-a="club">Club Match</button><button class="go" data-a="wc">World Cup</button></div>`)}
+function clubMenu(lg){lg=lg||LEAGUES[0];show(`<h1>Choose your club</h1><div class="row">${LEAGUES.map(l=>`<button class="${l===lg?'on':''}" data-a="lg" data-v="${l}">${l}</button>`).join('')}</div>
+<div class="row">${CL.map((t,i)=>t.lg===lg?teamBtn(t,i,'club'):'').join('')}</div><button data-a="home">Back</button>`)}
+function wcMenu(){show(`<h1>World Cup</h1><p>Pick a nation. Win the quarter-final, semi-final and final. Draws go to penalties.</p><div class="row">${NT.map((t,i)=>teamBtn(t,i,'wc')).join('')}</div><button data-a="home">Back</button>`)}
+$('menu').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const a=b.dataset.a,f=b.dataset.f;
+if(f==='club'){mode='club';const t=CL[+b.dataset.i];start(t,pick(CL,[t]),'Club match')}
+else if(f==='wc'){mode='wc';round=0;const t=NT[+b.dataset.i];wcOpps=[];while(wcOpps.length<3)wcOpps.push(pick(NT,[t,...wcOpps]));start(t,wcOpps[0],'Quarter-final')}
+else if(a==='club')clubMenu();else if(a==='wc')wcMenu();else if(a==='lg')clubMenu(b.dataset.v);else if(a==='home')home();
+else if(a==='again')start(me,pick(CL,[me]),'Club match');
+else if(a==='next'){round++;start(me,wcOpps[round],['Quarter-final','Semi-final','Final'][round])}});
+// ===== GAME LOGIC =====
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+function kick(p,tx,ty,pw){lastK=p;const dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy)||1;ball.vx=dx/d*pw;ball.vy=dy/d*pw;ball.o=null;p.cd=25}
+function mate(p,dx,dy){let best=null,bs=-1e9;P.forEach(q=>{if(q===p||q.side!==p.side)return;const ex=q.x-p.x,ey=q.y-p.y,d=Math.hypot(ex,ey)||1;let s=(ex*dx+ey*dy)/d*2-d*.15;if(q.i===0)s-=80;if(s>bs){bs=s;best=q}});return best}
+function pass(p,dx,dy){const q=mate(p,dx,dy);if(q)kick(p,q.x+q.vx*10,q.y+q.vy*10,Math.min(13,5+dist(p,q)/45))}
+function shoot(p,pw){const gx=p.side?0:W;kick(p,gx,(G1+G2)/2+(Math.random()-.5)*(110-p.sho*.5),9+pw*6+p.sho/25)}
+function move(p,tx,ty,run){const dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy),s=(1.9+p.pac/99*1.7)*(run&&p.st>0?1.35:1);
+if(run)p.st=Math.max(0,p.st-.35);else p.st=Math.min(100,p.st+.12);
+if(d>3){p.vx+=(dx/d*s-p.vx)*.2;p.vy+=(dy/d*s-p.vy)*.2}else{p.vx*=.8;p.vy*=.8}}
+function step(){
+if(pause>0){pause--;return}
+time+=1/60*(90/80);if(time>=90){end();return}
+const mine=P.filter(p=>!p.side&&p.i>0);
+ctrl=(!ball.o||ball.o.side)?mine.reduce((a,b)=>dist(a,ball)<dist(b,ball)?a:b):ball.o;
+let ix=(key.d||key.ArrowRight?1:0)-(key.a||key.ArrowLeft?1:0)+T.x,iy=(key.s||key.ArrowDown?1:0)-(key.w||key.ArrowUp?1:0)+T.y;
+const m=Math.hypot(ix,iy);if(m>1){ix/=m;iy/=m}
+const run=key.Shift||T.run;
+const chasers=[0,1].map(sd=>P.filter(p=>p.side===sd&&p.i>0).reduce((a,b)=>dist(a,ball)<dist(b,ball)?a:b));
+P.forEach(p=>{p.cd=Math.max(0,p.cd-1);
+if(p===ctrl){move(p,p.x+ix*50,p.y+iy*50,run&&m>.1);if(m>.1){p.fx=ix;p.fy=iy}}
+else if(p.i===0){move(p,p.side?W-24:24,Math.max(G1-10,Math.min(G2+10,ball.y)),0);if(ball.o===p&&p.cd===0)kick(p,W/2,H/2+(Math.random()-.5)*300,10)}
+else if(ball.o===p){const gx=p.side?0:W;move(p,gx,H/2+(p.y<H/2?-1:1)*40,0);p.fx=p.side?-1:1;p.fy=0;
+ if(Math.abs(p.x-gx)<300&&p.cd===0&&Math.random()<.03)shoot(p,.6);else if(p.cd===0&&Math.random()<.012)pass(p,p.fx,0)}
+else if(chasers[p.side]===p&&!(ball.o&&ball.o.side===p.side))move(p,ball.x+ball.vx*6,ball.y+ball.vy*6,p.side===1&&p.st>30);
+else{const h=HOME[p.i],hx=p.side?W-h[0]*W:h[0]*W;move(p,hx+(ball.x-W/2)*.35,h[1]*H+(ball.y-H/2)*.2,0)}
+p.x=Math.max(12,Math.min(W-12,p.x+p.vx));p.y=Math.max(14,Math.min(H-14,p.y+p.vy));
+if(p!==ctrl&&Math.hypot(p.vx,p.vy)>.5){p.fx=p.vx;p.fy=p.vy}});
+if(ctrl&&ball.o===ctrl){
+ if(T.sh||key[' '])hold=Math.min(1,hold+.03);else if(hold>0){shoot(ctrl,hold);hold=0}
+ if(T.ps||key.f){T.ps=0;key.f=0;pass(ctrl,m>.1?ix:ctrl.fx,m>.1?iy:ctrl.fy)}}else hold=0;
+if(ball.o){const o=ball.o,n=Math.hypot(o.fx,o.fy)||1;ball.x=o.x+o.fx/n*13;ball.y=o.y+o.fy/n*13;ball.vx=o.vx;ball.vy=o.vy;
+ P.forEach(q=>{if(q.side!==o.side&&q.cd===0&&dist(q,o)<17&&Math.random()<.035+q.pac/4000){ball.o=q;q.cd=15;o.cd=40}})}
+else{ball.x+=ball.vx;ball.y+=ball.vy;ball.vx*=.986;ball.vy*=.986;
+ if(ball.y<6||ball.y>H-6){ball.vy*=-.8;ball.y=ball.y<6?6:H-6}
+ if(ball.x<0||ball.x>W){if(ball.y>G1&&ball.y<G2){goal(ball.x>W?0:1);return}ball.vx*=-.8;ball.x=ball.x<0?0:W}
+ let best=null,bd=17;P.forEach(q=>{const d=dist(q,ball);if(q.cd===0&&d<bd&&(Math.hypot(ball.vx,ball.vy)<11||q.i===0)){bd=d;best=q}});
+ if(best){if(best.i===0&&Math.hypot(ball.vx,ball.vy)>9){ball.vx*=-.5;ball.vy*=-.5;best.cd=20}else ball.o=best}}}
+let lastK=null,cel=null;
+function roar(){try{const a=roar.a||(roar.a=new(window.AudioContext||window.webkitAudioContext)()),n=a.sampleRate*1.6,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,1.5)*.35;const s=a.createBufferSource();s.buffer=b;const f=a.createBiquadFilter();f.type='bandpass';f.frequency.value=900;s.connect(f);f.connect(a.destination);s.start()}catch(e){}}
+function goal(s){score[s]++;upd();pause=120;place();roar();cel={t:120,s:s,n:lastK&&lastK.side===s?lastK.n:'',cf:Array.from({length:80},()=>({x:W/2,y:H/2,vx:(Math.random()-.5)*14,vy:-Math.random()*12-2,r:3+Math.random()*5,c:['#ff9f1c','#ff2e93','#ffffff','#7dff9b','#5ad1ff'][Math.floor(Math.random()*5)]}))};$('sc').style.color=s?'#ff6b6b':'#7dff9b';setTimeout(()=>$('sc').style.color='',900)}
+function end(){state='over';const a=score[0],b=score[1];let r,sub='',btn='';
+if(mode==='wc'){let adv=a>b;if(a===b){adv=Math.random()<.5+(me.str-op.str)/100;sub=`Penalties: ${adv?'you win':'you lose'}.`}
+ if(adv&&round===2){r='World Champions!';sub+=' '+me.name+' lift the trophy.';btn='<button class="go" data-a="home">Main menu</button>'}
+ else if(adv){r='Through!';btn=`<button class="go" data-a="next">Next: ${['','Semi-final','Final'][round+1]} vs ${wcOpps[round+1].name}</button>`}
+ else{r='Knocked out';btn='<button class="go" data-a="wc">Try again</button><button data-a="home">Main menu</button>'}}
+else{r=a>b?'You win!':a<b?'You lost':'Draw';btn='<button class="go" data-a="again">Play again</button><button data-a="club">Change club</button><button data-a="home">Main menu</button>'}
+show(`<h1>${r}</h1><p>${me.name} ${a} - ${b} ${op.name}</p><p>${sub}</p><div class="row">${btn}</div>`)}
+// ===== DRAWING =====
+function figure(p,moving){
+const d=p.fx>=0?1:-1,ph=moving?tick*.35:0,sw=Math.sin(ph)*4;
+X.save();X.translate(p.x,p.y);
+X.fillStyle='rgba(0,0,0,.28)';X.beginPath();X.ellipse(0,15,12,5,0,0,7);X.fill();
+[-1,1].forEach(k=>{X.fillStyle=p.skin;X.fillRect(k*3-2,3,4,10);X.fillStyle=p.alt;X.fillRect(k*3-2,8,4,5);X.fillStyle='#111';X.fillRect(k*3-2+(k*sw*.5)*d,12,5,3)});
+X.fillStyle=p.alt;X.fillRect(-7,-2,14,7);
+X.fillStyle=p.col;X.beginPath();X.roundRect(-8,-14,16,14,3);X.fill();
+X.fillStyle=p.skin;X.fillRect(-11,-13,3,9+sw*.3);X.fillRect(8,-13,3,9-sw*.3);
+X.fillStyle=p.alt;X.font='700 8px sans-serif';X.textAlign='center';X.fillText(p.num,0,-5);
+X.fillStyle=p.skin;X.beginPath();X.arc(0,-20,6,0,7);X.fill();
+X.fillStyle=p.hair;
+if(p.style===0){X.beginPath();X.arc(0,-21,6.3,Math.PI,0);X.fill()}
+else if(p.style===1){X.beginPath();X.arc(0,-22,8,Math.PI*.9,Math.PI*2.1);X.fill()}
+else{X.fillRect(-6,-22,12,2)}
+X.fillStyle='#111';X.fillRect(d*2-1,-20,1.6,1.6);X.fillRect(d*4-1,-20,1.6,1.6);
+X.restore()}
+function draw(){
+tick++;X.fillStyle='#2a7a3a';X.fillRect(0,0,W,H);
+for(let i=0;i<10;i++){X.fillStyle=i%2?'#1f7a46':'#19693b';X.fillRect(i*100,0,100,H)}
+const gl=X.createRadialGradient(W/2,H/2,100,W/2,H/2,620);gl.addColorStop(0,'rgba(255,255,255,.08)');gl.addColorStop(1,'rgba(14,6,45,.6)');X.fillStyle=gl;X.fillRect(0,0,W,H);
+X.strokeStyle='rgba(255,255,255,.85)';X.lineWidth=3;X.strokeRect(3,3,W-6,H-6);
+X.beginPath();X.moveTo(W/2,3);X.lineTo(W/2,H-3);X.stroke();X.beginPath();X.arc(W/2,H/2,70,0,7);X.stroke();
+X.strokeRect(3,170,150,280);X.strokeRect(W-153,170,150,280);
+X.fillStyle='#fff';X.fillRect(0,G1,6,G2-G1);X.fillRect(W-6,G1,6,G2-G1);
+X.fillStyle='rgba(10,5,40,.75)';X.fillRect(0,0,W,11);X.fillRect(0,H-11,W,11);
+const cheer=cel&&cel.t>0?4:1.2;for(let i=0;i<100;i++){const c=['#ff2e93','#ff9f1c','#ffffff','#5ad1ff','#b388ff'][i%5],bb=Math.sin(tick*.1+i*1.7)*cheer;X.fillStyle=c;X.fillRect(i*10+2,3+bb,5,5);X.fillRect(i*10+2,H-9-bb,5,5)}
+[[0,0],[W,0],[0,H],[W,H]].forEach(q=>{const lg=X.createRadialGradient(q[0],q[1],0,q[0],q[1],200);lg.addColorStop(0,'rgba(255,240,170,.4)');lg.addColorStop(1,'rgba(255,240,170,0)');X.fillStyle=lg;X.fillRect(q[0]-200,q[1]-200,400,400)});
+if(!P)return;
+[...P].sort((a,b)=>a.y-b.y).forEach(p=>{
+ if(p===ctrl){X.strokeStyle='#ffd23f';X.lineWidth=3;X.beginPath();X.ellipse(p.x,p.y+15,17,8,0,0,7);X.stroke()}
+ figure(p,Math.hypot(p.vx,p.vy)>.5);
+ if(p===ctrl){X.fillStyle='#fff';X.font='700 17px Barlow Condensed,sans-serif';X.textAlign='center';X.fillText(p.n,p.x,p.y-34);
+ X.fillStyle='#222';X.fillRect(p.x-16,p.y+22,32,4);X.fillStyle='#ffd23f';X.fillRect(p.x-16,p.y+22,32*p.st/100,4)}});
+X.fillStyle='rgba(0,0,0,.25)';X.beginPath();X.ellipse(ball.x,ball.y+6,6,3,0,0,7);X.fill();
+X.fillStyle='#fff';X.strokeStyle='#111';X.lineWidth=2;X.beginPath();X.arc(ball.x,ball.y,6,0,7);X.fill();X.stroke();
+if(hold>0&&ctrl){X.fillStyle='#222';X.fillRect(ctrl.x-20,ctrl.y+30,40,5);X.fillStyle='#ff6b6b';X.fillRect(ctrl.x-20,ctrl.y+30,40*hold,5)}
+if(pause>0&&state==='play'&&!(cel&&cel.t>0)){X.fillStyle='rgba(0,0,0,.4)';X.fillRect(0,H/2-34,W,68);X.fillStyle='#fff';X.font='700 38px Archivo Black,Impact,sans-serif';X.textAlign='center';X.fillText(time<1&&score[0]+score[1]===0?'KICK-OFF':'GET READY',W/2,H/2+14)}
+if(cel&&cel.t>0){cel.t--;const k=1-cel.t/120;cel.cf.forEach(f=>{f.x+=f.vx;f.y+=f.vy;f.vy+=.35;X.fillStyle=f.c;X.fillRect(f.x,f.y,f.r,f.r*1.6)});
+X.save();X.translate(W/2,H/2);const z=1+Math.sin(Math.min(1,k*3)*Math.PI)*.25;X.scale(z,z);X.textAlign='center';X.font='120px Archivo Black,Impact,sans-serif';X.lineWidth=10;X.strokeStyle='#120b2e';X.strokeText('GOAL!',0,0);X.fillStyle=cel.s?'#ff6b6b':'#ff9f1c';X.fillText('GOAL!',0,0);
+if(cel.n){X.font='700 38px Barlow Condensed,sans-serif';X.fillStyle='#fff';X.strokeText(cel.n+' scores',0,52);X.lineWidth=6;X.fillText(cel.n+' scores',0,52)}X.restore()}
+$('clock').textContent=Math.floor(time)+"'"}
+function loop(){if(state==='play')step();draw();requestAnimationFrame(loop)}
+home();loop();
+// ===== INPUT =====
+addEventListener('keydown',e=>{key[e.key.length===1?e.key.toLowerCase():e.key]=1;if(e.key===' ')e.preventDefault()});
+addEventListener('keyup',e=>{key[e.key.length===1?e.key.toLowerCase():e.key]=0});
+const joy=$('joy'),nub=$('nub');let jid=null;
+function jm(e){const r=joy.getBoundingClientRect(),dx=e.clientX-(r.left+70),dy=e.clientY-(r.top+70),d=Math.min(1,Math.hypot(dx,dy)/55),a=Math.atan2(dy,dx);
+T.x=Math.cos(a)*d;T.y=Math.sin(a)*d;nub.style.transform='translate('+T.x*45+'px,'+T.y*45+'px)'}
+joy.onpointerdown=e=>{jid=e.pointerId;joy.setPointerCapture(jid);jm(e)};joy.onpointermove=e=>{if(e.pointerId===jid)jm(e)};
+joy.onpointerup=joy.onpointercancel=()=>{jid=null;T.x=T.y=0;nub.style.transform=''};
+const hb=(id,k,hold)=>{const b=$(id);b.onpointerdown=e=>{e.preventDefault();T[k]=1};b.onpointerup=b.onpointercancel=b.onpointerleave=()=>{if(hold)T[k]=0}};
+hb('bs','sh',1);hb('br','run',1);hb('bp','ps',0);
+</script></body></html>
